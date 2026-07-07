@@ -6,7 +6,15 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
     <title>TANNUS MES Intro</title>
 
+
+    <meta property="og:title" content="TANNUS MES" />
+    <meta property="og:description" content="생산 · 물류 통합 관리 시스템" />
+    <meta property="og:image" content="http://43.203.123.217:8080/tannus-mes-og-image.png" />
+    <meta property="og:type" content="website" />
+    <meta property="og:url" content="http://43.203.123.217:8080/" />
+
     <style>
+
         * {
             margin: 0;
             padding: 0;
