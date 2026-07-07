@@ -1,0 +1,192 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="com.example.demo.api.mapper.ItemMapper">
+
+    <resultMap id="itemResultMap" type="com.example.demo.api.domain.Item">
+        <id property="id" column="id"/>
+        <result property="productType" column="product_type"/>
+        <result property="modelName" column="model_name"/>
+        <result property="color" column="color"/>
+        <result property="hardness" column="hardness"/>
+        <result property="baseQty" column="base_qty"/>
+        <result property="currentQty" column="current_qty"/>
+        <result property="location" column="location"/>
+        <result property="lastInDate" column="last_in_date"/>
+        <result property="lastOutDate" column="last_out_date"/>
+        <result property="createdAt" column="created_at"/>
+    </resultMap>
+
+    <select id="findAll" resultMap="itemResultMap">
+        SELECT
+        id,
+        product_type,
+        model_name,
+        color,
+        hardness,
+        base_qty,
+        current_qty,
+        location,
+        last_in_date,
+        last_out_date,
+        created_at
+        FROM item
+        ORDER BY
+        FIELD(product_type, 'TIRE', 'ARMOUR', 'TUBELESS'),
+        id ASC
+    </select>
+
+    <select id="findByProductType" resultMap="itemResultMap">
+        SELECT
+        id,
+        product_type,
+        model_name,
+        color,
+        hardness,
+        base_qty,
+        current_qty,
+        location,
+        last_in_date,
+        last_out_date,
+        created_at
+        FROM item
+        WHERE product_type = #{productType}
+        ORDER BY id ASC
+    </select>
+
+    <select id="search" resultMap="itemResultMap">
+        SELECT
+        id,
+        product_type,
+        model_name,
+        color,
+        hardness,
+        base_qty,
+        current_qty,
+        location,
+        last_in_date,
+        last_out_date,
+        created_at
+        FROM item
+        WHERE
+        product_type LIKE CONCAT('%', #{keyword}, '%')
+        OR model_name LIKE CONCAT('%', #{keyword}, '%')
+        OR color LIKE CONCAT('%', #{keyword}, '%')
+        OR hardness LIKE CONCAT('%', #{keyword}, '%')
+        ORDER BY id ASC
+    </select>
+
+    <select id="findByOption" resultMap="itemResultMap">
+        SELECT
+        id,
+        product_type,
+        model_name,
+        color,
+        hardness,
+        base_qty,
+        current_qty,
+        location,
+        last_in_date,
+        last_out_date,
+        created_at
+        FROM item
+        WHERE product_type = #{productType}
+        AND model_name = #{modelName}
+        AND color = #{color}
+        AND hardness = #{hardness}
+        LIMIT 1
+    </select>
+
+    <update id="increaseStock">
+        UPDATE item
+        SET current_qty = current_qty + #{qty},
+        last_in_date = NOW()
+        WHERE id = #{id}
+    </update>
+
+    <insert id="insertItem"
+            parameterType="com.example.demo.api.domain.Item"
+            useGeneratedKeys="true"
+            keyProperty="id">
+        INSERT INTO item (
+        product_type,
+        model_name,
+        color,
+        hardness,
+        base_qty,
+        current_qty,
+        location,
+        last_in_date
+        )
+        VALUES (
+        #{productType},
+        #{modelName},
+        #{color},
+        #{hardness},
+        #{baseQty},
+        #{currentQty},
+        #{location},
+        NOW()
+        )
+    </insert>
+
+    <select id="findById" resultMap="itemResultMap">
+        SELECT
+        id,
+        product_type,
+        model_name,
+        color,
+        hardness,
+        base_qty,
+        current_qty,
+        location,
+        last_in_date,
+        last_out_date,
+        created_at
+        FROM item
+        WHERE id = #{id}
+    </select>
+
+    <update id="updateCurrentQty">
+        UPDATE item
+        SET current_qty = #{currentQty},
+        last_out_date = NOW()
+        WHERE id = #{id}
+    </update>
+
+    <select id="findModelNamesByProductType" resultType="string">
+        SELECT DISTINCT model_name
+        FROM item
+        WHERE product_type = #{productType}
+        ORDER BY model_name ASC
+    </select>
+
+    <select id="findByProductTypeAndModelName"
+            resultMap="itemResultMap">
+        SELECT
+            id,
+            product_type,
+            model_name,
+            color,
+            hardness,
+            base_qty,
+            current_qty,
+            location,
+            last_in_date,
+            last_out_date
+        FROM item
+        WHERE product_type = #{productType}
+          AND model_name = #{modelName}
+            LIMIT 1
+    </select>
+
+    <update id="updateBaseQty">
+        UPDATE item
+        SET base_qty = #{baseQty}
+        WHERE id = #{id}
+    </update>
+
+
+</mapper>

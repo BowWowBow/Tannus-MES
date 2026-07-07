@@ -1,0 +1,205 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="com.example.demo.api.mapper.UnplannedExportMapper">
+
+    <resultMap id="UnplannedExportResultMap"
+               type="com.example.demo.api.domain.UnplannedExport">
+
+        <id property="id" column="id"/>
+
+        <result property="exportOrderId" column="export_order_id"/>
+        <result property="productType" column="product_type"/>
+        <result property="modelName" column="model_name"/>
+        <result property="color" column="color"/>
+        <result property="hardness" column="hardness"/>
+        <result property="baseQty" column="base_qty"/>
+        <result property="boxCount" column="box_count"/>
+        <result property="eachQty" column="each_qty"/>
+        <result property="totalQty" column="total_qty"/>
+        <result property="reason" column="reason"/>
+        <result property="status" column="status"/>
+        <result property="createdAt" column="created_at"/>
+        <result property="checkedAt" column="checked_at"/>
+
+    </resultMap>
+
+    <insert id="insert"
+            parameterType="com.example.demo.api.domain.UnplannedExport"
+            useGeneratedKeys="true"
+            keyProperty="id">
+        INSERT INTO unplanned_export (
+        export_order_id,
+        product_type,
+        model_name,
+        color,
+        hardness,
+        base_qty,
+        box_count,
+        each_qty,
+        total_qty,
+        reason,
+        status
+        ) VALUES (
+        #{exportOrderId},
+        #{productType},
+        #{modelName},
+        #{color},
+        #{hardness},
+        #{baseQty},
+        #{boxCount},
+        #{eachQty},
+        #{totalQty},
+        #{reason},
+        'PENDING'
+        )
+    </insert>
+
+    <select id="findAllList" resultMap="UnplannedExportResultMap">
+        SELECT
+        id,
+        export_order_id,
+        product_type,
+        model_name,
+        color,
+        hardness,
+        base_qty,
+        box_count,
+        each_qty,
+        total_qty,
+        reason,
+        status,
+        created_at,
+        checked_at
+        FROM unplanned_export
+        ORDER BY id DESC
+    </select>
+
+    <select id="findByMonth" resultMap="UnplannedExportResultMap">
+        SELECT
+        id,
+        export_order_id,
+        product_type,
+        model_name,
+        color,
+        hardness,
+        base_qty,
+        box_count,
+        each_qty,
+        total_qty,
+        reason,
+        status,
+        created_at,
+        checked_at
+        FROM unplanned_export
+        WHERE DATE_FORMAT(created_at, '%Y-%m') = #{month}
+        ORDER BY id DESC
+    </select>
+
+    <select id="findMonths" resultType="string">
+        SELECT DISTINCT DATE_FORMAT(created_at, '%Y-%m')
+        FROM unplanned_export
+        ORDER BY DATE_FORMAT(created_at, '%Y-%m') DESC
+    </select>
+
+    <select id="findByExportOrderId"
+            parameterType="long"
+            resultMap="UnplannedExportResultMap">
+        SELECT
+        id,
+        export_order_id,
+        product_type,
+        model_name,
+        color,
+        hardness,
+        base_qty,
+        box_count,
+        each_qty,
+        total_qty,
+        reason,
+        status,
+        created_at,
+        checked_at
+        FROM unplanned_export
+        WHERE export_order_id = #{exportOrderId}
+        ORDER BY id DESC
+    </select>
+
+    <select id="findPendingList" resultMap="UnplannedExportResultMap">
+        SELECT
+        id,
+        export_order_id,
+        product_type,
+        model_name,
+        color,
+        hardness,
+        base_qty,
+        box_count,
+        each_qty,
+        total_qty,
+        reason,
+        status,
+        created_at,
+        checked_at
+        FROM unplanned_export
+        WHERE status = 'PENDING'
+        ORDER BY id DESC
+    </select>
+
+    <select id="findById"
+            parameterType="long"
+            resultMap="UnplannedExportResultMap">
+        SELECT
+        id,
+        export_order_id,
+        product_type,
+        model_name,
+        color,
+        hardness,
+        base_qty,
+        box_count,
+        each_qty,
+        total_qty,
+        reason,
+        status,
+        created_at,
+        checked_at
+        FROM unplanned_export
+        WHERE id = #{id}
+    </select>
+
+    <select id="countPending" resultType="int">
+        SELECT COUNT(*)
+        FROM unplanned_export
+        WHERE status = 'PENDING'
+    </select>
+
+    <update id="approve">
+        UPDATE unplanned_export
+        SET status = 'APPROVED',
+        checked_at = NOW()
+        WHERE id = #{id}
+    </update>
+
+    <update id="reject">
+        UPDATE unplanned_export
+        SET status = 'REJECTED',
+        checked_at = NOW()
+        WHERE id = #{id}
+    </update>
+
+    <delete id="delete">
+        DELETE FROM unplanned_export
+        WHERE id = #{id}
+    </delete>
+
+    <select id="countPendingByExportOrderId" resultType="int">
+        SELECT COUNT(*)
+        FROM unplanned_export
+        WHERE export_order_id = #{exportOrderId}
+        AND status = 'PENDING'
+    </select>
+
+</mapper>

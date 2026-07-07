@@ -1,0 +1,121 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="com.example.demo.api.mapper.StockHistoryMapper">
+
+    <resultMap id="stockHistoryResultMap"
+               type="com.example.demo.api.domain.StockHistory">
+
+        <id property="id" column="id"/>
+
+        <result property="historyType" column="history_type"/>
+
+        <result property="productType" column="product_type"/>
+        <result property="modelName" column="model_name"/>
+        <result property="color" column="color"/>
+        <result property="hardness" column="hardness"/>
+
+        <result property="beforeQty" column="before_qty"/>
+        <result property="changeQty" column="change_qty"/>
+        <result property="afterQty" column="after_qty"/>
+
+        <result property="createdBy" column="created_by"/>
+        <result property="memo" column="memo"/>
+
+        <result property="createdAt" column="created_at"/>
+
+    </resultMap>
+
+    <insert id="insert"
+            parameterType="com.example.demo.api.domain.StockHistory"
+            useGeneratedKeys="true"
+            keyProperty="id">
+
+        INSERT INTO stock_history (
+        history_type,
+        product_type,
+        model_name,
+        color,
+        hardness,
+        before_qty,
+        change_qty,
+        after_qty,
+        created_by,
+        memo
+        )
+        VALUES (
+        #{historyType},
+        #{productType},
+        #{modelName},
+        #{color},
+        #{hardness},
+        #{beforeQty},
+        #{changeQty},
+        #{afterQty},
+        #{createdBy},
+        #{memo}
+        )
+
+    </insert>
+
+    <select id="findAll"
+            resultMap="stockHistoryResultMap">
+
+        SELECT *
+        FROM stock_history
+        ORDER BY id DESC
+
+    </select>
+
+    <select id="findByProductType"
+            resultMap="stockHistoryResultMap">
+
+        SELECT *
+        FROM stock_history
+        WHERE product_type = #{productType}
+        ORDER BY id DESC
+
+    </select>
+
+    <select id="findByHistoryType"
+            resultMap="stockHistoryResultMap">
+
+        SELECT *
+        FROM stock_history
+        WHERE history_type = #{historyType}
+        ORDER BY id DESC
+
+    </select>
+
+    <select id="findByOption"
+            resultMap="stockHistoryResultMap">
+
+        SELECT *
+        FROM stock_history
+        WHERE product_type = #{productType}
+          AND model_name = #{modelName}
+          AND color = #{color}
+          AND hardness = #{hardness}
+        ORDER BY created_at DESC
+
+    </select>
+
+    <select id="findById"
+            resultMap="stockHistoryResultMap">
+
+        SELECT *
+        FROM stock_history
+        WHERE id = #{id}
+
+    </select>
+
+    <delete id="delete">
+
+        DELETE FROM stock_history
+        WHERE id = #{id}
+
+    </delete>
+
+</mapper>

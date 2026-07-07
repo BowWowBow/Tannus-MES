@@ -1,0 +1,332 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="com.example.demo.api.mapper.ExportOrderMapper">
+
+    <resultMap id="exportOrderResultMap" type="com.example.demo.api.domain.ExportOrder">
+        <id property="id" column="id"/>
+        <result property="requestDate" column="request_date"/>
+        <result property="workerName" column="worker_name"/>
+        <result property="remark" column="remark"/>
+        <result property="status" column="status"/>
+        <result property="stockApplied" column="stock_applied"/>
+        <result property="createdAt" column="created_at"/>
+    </resultMap>
+
+    <resultMap id="exportOrderDetailResultMap" type="com.example.demo.api.domain.ExportOrderDetail">
+        <id property="id" column="id"/>
+        <result property="exportOrderId" column="export_order_id"/>
+        <result property="type" column="product_type"/>
+        <result property="model" column="model_name"/>
+        <result property="color" column="color"/>
+        <result property="hardness" column="hardness"/>
+        <result property="baseQty" column="base_qty"/>
+        <result property="boxCount" column="box_count"/>
+        <result property="eachQty" column="each_qty"/>
+        <result property="totalQty" column="total_qty"/>
+        <result property="displayName" column="display_name"/>
+        <result property="createdAt" column="created_at"/>
+        <result property="outboundStatus" column="outbound_status"/>
+        <result property="outboundAt" column="outbound_at"/>
+    </resultMap>
+
+    <insert id="insertOrder"
+            parameterType="com.example.demo.api.domain.ExportOrder"
+            useGeneratedKeys="true"
+            keyProperty="id">
+        INSERT INTO export_order (
+            request_date,
+            worker_name,
+            remark,
+            status,
+            stock_applied
+        )
+        VALUES (
+                   #{requestDate},
+                   #{workerName},
+                   #{remark},
+                   #{status},
+                   'N'
+               )
+    </insert>
+
+    <insert id="insertDetail"
+            parameterType="com.example.demo.api.domain.ExportOrderDetail">
+        INSERT INTO export_order_detail (
+            export_order_id,
+            product_type,
+            model_name,
+            color,
+            hardness,
+            base_qty,
+            box_count,
+            each_qty,
+            total_qty,
+            display_name,
+            outbound_status
+        )
+        VALUES (
+                   #{exportOrderId},
+                   #{type},
+                   #{model},
+                   #{color},
+                   #{hardness},
+                   #{baseQty},
+                   #{boxCount},
+                   #{eachQty},
+                   #{totalQty},
+                   #{displayName},
+                   'WAITING'
+               )
+    </insert>
+
+    <select id="findAll" resultMap="exportOrderResultMap">
+        SELECT
+            id,
+            request_date,
+            worker_name,
+            remark,
+            status,
+            stock_applied,
+            created_at
+        FROM export_order
+        ORDER BY id DESC
+    </select>
+
+    <select id="findById" resultMap="exportOrderResultMap">
+        SELECT
+            id,
+            request_date,
+            worker_name,
+            remark,
+            status,
+            stock_applied,
+            created_at
+        FROM export_order
+        WHERE id = #{id}
+    </select>
+
+    <select id="findDetailsByOrderId" resultMap="exportOrderDetailResultMap">
+        SELECT
+            id,
+            export_order_id,
+            product_type,
+            model_name,
+            color,
+            hardness,
+            base_qty,
+            box_count,
+            each_qty,
+            total_qty,
+            COALESCE(NULLIF(display_name, ''), model_name) AS display_name,
+            created_at,
+            outbound_status,
+            outbound_at
+        FROM export_order_detail
+        WHERE export_order_id = #{exportOrderId}
+        ORDER BY id ASC
+    </select>
+
+    <select id="countByStatus" resultType="int">
+        SELECT COUNT(*)
+        FROM export_order
+        WHERE status = #{status}
+    </select>
+
+    <select id="findByStatus" resultMap="exportOrderResultMap">
+        SELECT
+            id,
+            request_date,
+            worker_name,
+            remark,
+            status,
+            stock_applied,
+            created_at
+        FROM export_order
+        WHERE status = #{status}
+        ORDER BY id DESC
+    </select>
+
+    <update id="updateStatus">
+        UPDATE export_order
+        SET status = #{status}
+        WHERE id = #{id}
+          AND status != 'DONE'
+    </update>
+
+    <update id="updateStockApplied">
+        UPDATE export_order
+        SET stock_applied = #{stockApplied}
+        WHERE id = #{id}
+    </update>
+
+    <update id="updateDetailOutboundStatus">
+        UPDATE export_order_detail
+        SET outbound_status = 'DONE',
+            outbound_at = NOW()
+        WHERE id = #{detailId}
+          AND outbound_status != 'DONE'
+    </update>
+
+    <update id="cancelOutboundByOrderId">
+        UPDATE export_order_detail
+        SET outbound_status = 'WAITING',
+            outbound_at = NULL
+        WHERE export_order_id = #{exportOrderId}
+    </update>
+
+    <select id="countDetailDone" resultType="int">
+        SELECT COUNT(*)
+        FROM export_order_detail
+        WHERE export_order_id = #{exportOrderId}
+          AND outbound_status = 'DONE'
+    </select>
+
+    <select id="countDetailAll" resultType="int">
+        SELECT COUNT(*)
+        FROM export_order_detail
+        WHERE export_order_id = #{exportOrderId}
+    </select>
+
+    <select id="findByMonth" resultMap="exportOrderResultMap">
+        SELECT *
+        FROM export_order
+        WHERE status = 'DONE'
+          AND DATE_FORMAT(request_date, '%Y-%m') = #{month}
+        ORDER BY id DESC
+    </select>
+
+    <select id="findOrderMonths" resultType="string">
+        SELECT DISTINCT DATE_FORMAT(request_date, '%Y-%m')
+        FROM export_order
+        WHERE status = 'DONE'
+          AND request_date IS NOT NULL
+        ORDER BY DATE_FORMAT(request_date, '%Y-%m') DESC
+    </select>
+
+    <update id="updateOrder"
+            parameterType="com.example.demo.api.domain.ExportOrder">
+        UPDATE export_order
+        SET remark = #{remark},
+            status = #{status}
+        WHERE id = #{id}
+    </update>
+
+    <delete id="deleteDetails">
+        DELETE FROM export_order_detail
+        WHERE export_order_id = #{exportOrderId}
+    </delete>
+
+    <select id="countByYear" resultType="int">
+        SELECT COUNT(*)
+        FROM export_order
+        WHERE YEAR(created_at) = #{year}
+          AND status != 'CANCELLED'
+    </select>
+
+    <select id="countDoneByYear" resultType="int">
+        SELECT COUNT(*)
+        FROM export_order
+        WHERE YEAR(created_at) = #{year}
+          AND status = 'DONE'
+    </select>
+
+    <select id="countByQuarter" resultType="int">
+        SELECT COUNT(*)
+        FROM export_order
+        WHERE YEAR(created_at) = #{year}
+          AND QUARTER(created_at) = #{quarter}
+          AND status != 'CANCELLED'
+    </select>
+
+    <select id="countDoneByQuarter" resultType="int">
+        SELECT COUNT(*)
+        FROM export_order
+        WHERE YEAR(created_at) = #{year}
+          AND QUARTER(created_at) = #{quarter}
+          AND status = 'DONE'
+    </select>
+
+    <select id="countByMonthForStats" resultType="int">
+        SELECT COUNT(*)
+        FROM export_order
+        WHERE YEAR(created_at) = #{year}
+          AND MONTH(created_at) = #{month}
+          AND status != 'CANCELLED'
+    </select>
+
+    <select id="countDoneByMonthForStats" resultType="int">
+        SELECT COUNT(*)
+        FROM export_order
+        WHERE YEAR(created_at) = #{year}
+          AND MONTH(created_at) = #{month}
+          AND status = 'DONE'
+    </select>
+
+    <select id="countByWeek" resultType="int">
+        SELECT COUNT(*)
+        FROM export_order
+        WHERE YEAR(created_at) = #{year}
+          AND WEEK(created_at, 1) = #{week}
+          AND status != 'CANCELLED'
+    </select>
+
+    <select id="countDoneByWeek" resultType="int">
+        SELECT COUNT(*)
+        FROM export_order
+        WHERE YEAR(created_at) = #{year}
+          AND WEEK(created_at, 1) = #{week}
+          AND status = 'DONE'
+    </select>
+
+    <select id="countDMinus2" resultType="int">
+        SELECT COUNT(*)
+        FROM export_order
+        WHERE status NOT IN ('DONE', 'CANCELLED')
+          AND DATEDIFF(request_date, CURDATE()) = 2
+    </select>
+
+    <select id="countDMinus1" resultType="int">
+        SELECT COUNT(*)
+        FROM export_order
+        WHERE status NOT IN ('DONE', 'CANCELLED')
+          AND DATEDIFF(request_date, CURDATE()) = 1
+    </select>
+
+    <select id="countDDay" resultType="int">
+        SELECT COUNT(*)
+        FROM export_order
+        WHERE status NOT IN ('DONE', 'CANCELLED')
+          AND DATEDIFF(request_date, CURDATE()) = 0
+    </select>
+
+    <select id="countDPlus1" resultType="int">
+        SELECT COUNT(*)
+        FROM export_order
+        WHERE status NOT IN ('DONE', 'CANCELLED')
+          AND DATEDIFF(CURDATE(), request_date) = 1
+    </select>
+
+    <select id="countDPlus2Over" resultType="int">
+        SELECT COUNT(*)
+        FROM export_order
+        WHERE status NOT IN ('DONE', 'CANCELLED')
+          AND DATEDIFF(CURDATE(), request_date) >= 2
+    </select>
+
+    <select id="findWorkOrderById" resultMap="exportOrderResultMap">
+        SELECT
+            id,
+            request_date,
+            worker_name,
+            remark,
+            status,
+            stock_applied,
+            created_at
+        FROM export_order
+        WHERE id = #{id}
+    </select>
+
+</mapper>

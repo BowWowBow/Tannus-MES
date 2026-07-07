@@ -1,0 +1,261 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="com.example.demo.api.mapper.ExportOutboundScanMapper">
+
+    <resultMap id="scanMap"
+               type="com.example.demo.api.domain.ExportOutboundScan">
+
+        <id property="id" column="id"/>
+
+        <result property="qrType" column="qr_type"/>
+        <result property="exportOrderId" column="export_order_id"/>
+        <result property="detailId" column="detail_id"/>
+
+        <result property="unitType" column="unit_type"/>
+        <result property="unitNo" column="unit_no"/>
+        <result property="qty" column="qty"/>
+
+        <result property="scanStatus" column="scan_status"/>
+        <result property="scannedAt" column="scanned_at"/>
+
+        <result property="stockApplied" column="stock_applied"/>
+        <result property="stockAppliedAt" column="stock_applied_at"/>
+
+        <result property="createdAt" column="created_at"/>
+
+    </resultMap>
+
+
+    <!-- 등록 -->
+    <insert id="insert"
+            parameterType="com.example.demo.api.domain.ExportOutboundScan"
+            useGeneratedKeys="true"
+            keyProperty="id">
+
+        INSERT INTO export_outbound_scan
+        (
+            qr_type,
+            export_order_id,
+            detail_id,
+            unit_type,
+            unit_no,
+            qty,
+            scan_status,
+            stock_applied
+        )
+        VALUES
+            (
+                #{qrType},
+                #{exportOrderId},
+                #{detailId},
+                #{unitType},
+                #{unitNo},
+                #{qty},
+                'WAITING',
+                'N'
+            )
+
+    </insert>
+
+
+    <!-- 주문별 조회 -->
+    <select id="findByOrderId"
+            resultMap="scanMap">
+
+        SELECT *
+        FROM export_outbound_scan
+        WHERE export_order_id = #{exportOrderId}
+        ORDER BY
+            CASE
+                WHEN qr_type = 'EXPORT' THEN 1
+                WHEN qr_type = 'UNPLANNED_EXPORT' THEN 2
+                ELSE 3
+                END,
+            detail_id,
+            id
+
+    </select>
+
+
+    <!-- 상세별 조회 -->
+    <select id="findByDetailId"
+            resultMap="scanMap">
+
+        SELECT *
+        FROM export_outbound_scan
+        WHERE detail_id = #{detailId}
+        ORDER BY id
+
+    </select>
+
+
+    <!-- QR찾기 -->
+    <select id="findByQrInfo"
+            resultMap="scanMap">
+
+        SELECT *
+        FROM export_outbound_scan
+        WHERE export_order_id = #{exportOrderId}
+          AND detail_id = #{detailId}
+          AND unit_type = #{unitType}
+          AND unit_no = #{unitNo}
+            LIMIT 1
+
+    </select>
+
+
+    <!-- 완료처리 -->
+    <update id="updateScanDone">
+
+        UPDATE export_outbound_scan
+        SET scan_status = 'DONE',
+            scanned_at = NOW()
+        WHERE id = #{id}
+
+    </update>
+
+
+    <!-- 취소 -->
+    <update id="cancelScan">
+
+        UPDATE export_outbound_scan
+        SET scan_status = 'WAITING',
+            scanned_at = NULL
+        WHERE id = #{id}
+          AND scan_status = 'DONE'
+
+    </update>
+
+
+    <!-- 주문 대기 -->
+    <select id="countWaitingByOrderId"
+            resultType="int">
+
+        SELECT COUNT(*)
+        FROM export_outbound_scan
+        WHERE export_order_id = #{exportOrderId}
+          AND scan_status = 'WAITING'
+
+    </select>
+
+
+    <!-- 주문 완료 -->
+    <select id="countDoneByOrderId"
+            resultType="int">
+
+        SELECT COUNT(*)
+        FROM export_outbound_scan
+        WHERE export_order_id = #{exportOrderId}
+          AND scan_status = 'DONE'
+
+    </select>
+
+
+    <!-- 상세 대기 -->
+    <select id="countWaitingByDetailId"
+            resultType="int">
+
+        SELECT COUNT(*)
+        FROM export_outbound_scan
+        WHERE detail_id = #{detailId}
+          AND scan_status = 'WAITING'
+
+    </select>
+
+
+    <!-- 상세 완료 -->
+    <select id="countDoneByDetailId"
+            resultType="int">
+
+        SELECT COUNT(*)
+        FROM export_outbound_scan
+        WHERE detail_id = #{detailId}
+          AND scan_status = 'DONE'
+
+    </select>
+
+
+    <!-- 미반영 -->
+    <select id="findDoneNotAppliedByOrderId"
+            resultMap="scanMap">
+
+        SELECT *
+        FROM export_outbound_scan
+        WHERE export_order_id = #{exportOrderId}
+          AND scan_status = 'DONE'
+          AND stock_applied = 'N'
+        ORDER BY id
+
+    </select>
+
+
+    <!-- 재고반영 -->
+    <update id="updateStockApplied">
+
+        UPDATE export_outbound_scan
+        SET stock_applied = 'Y',
+            stock_applied_at = NOW()
+        WHERE id = #{id}
+
+    </update>
+
+
+    <!-- 수량합계 -->
+    <select id="sumDoneQtyNotApplied"
+            resultType="int">
+
+        SELECT IFNULL(SUM(qty), 0)
+        FROM export_outbound_scan
+        WHERE detail_id = #{detailId}
+          AND scan_status = 'DONE'
+          AND stock_applied = 'N'
+
+    </select>
+
+
+    <!-- 상세반영 -->
+    <update id="applyStockByDetailId">
+
+        UPDATE export_outbound_scan
+        SET stock_applied = 'Y',
+            stock_applied_at = NOW()
+        WHERE detail_id = #{detailId}
+          AND scan_status = 'DONE'
+          AND stock_applied = 'N'
+
+    </update>
+
+
+    <!-- 개수 -->
+    <select id="countByDetailId"
+            resultType="int">
+
+        SELECT COUNT(*)
+        FROM export_outbound_scan
+        WHERE detail_id = #{detailId}
+
+    </select>
+
+    <delete id="deleteWaitingByOrderId">
+        DELETE FROM export_outbound_scan
+        WHERE export_order_id = #{exportOrderId}
+          AND scan_status = 'WAITING'
+          AND qr_type = 'EXPORT'
+    </delete>
+
+    <delete id="deleteWaitingUnplannedByOrderId">
+        DELETE FROM export_outbound_scan
+        WHERE export_order_id = #{exportOrderId}
+          AND scan_status = 'WAITING'
+          AND qr_type = 'UNPLANNED_EXPORT'
+    </delete>
+
+    <delete id="deleteByOrderId">
+        DELETE FROM export_outbound_scan
+        WHERE export_order_id = #{exportOrderId}
+    </delete>
+
+</mapper>

@@ -1,0 +1,181 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="com.example.demo.api.mapper.PackingInboundScanMapper">
+
+    <resultMap id="packingInboundScanResultMap"
+               type="com.example.demo.api.domain.PackingInboundScan">
+        <id property="id" column="id"/>
+        <result property="packingOrderId" column="packing_order_id"/>
+        <result property="detailId" column="detail_id"/>
+        <result property="unitType" column="unit_type"/>
+        <result property="unitNo" column="unit_no"/>
+        <result property="qty" column="qty"/>
+        <result property="scanStatus" column="scan_status"/>
+        <result property="stockApplied" column="stock_applied"/>
+        <result property="scannedAt" column="scanned_at"/>
+        <result property="stockAppliedAt" column="stock_applied_at"/>
+        <result property="createdAt" column="created_at"/>
+        <result property="productType" column="product_type"/>
+        <result property="modelName" column="model_name"/>
+        <result property="color" column="color"/>
+        <result property="hardness" column="hardness"/>
+    </resultMap>
+
+    <insert id="insert"
+            parameterType="com.example.demo.api.domain.PackingInboundScan"
+            useGeneratedKeys="true"
+            keyProperty="id">
+        INSERT INTO packing_inbound_scan (
+            packing_order_id,
+            detail_id,
+            unit_type,
+            unit_no,
+            qty,
+            scan_status,
+            stock_applied
+        ) VALUES (
+                     #{packingOrderId},
+                     #{detailId},
+                     #{unitType},
+                     #{unitNo},
+                     #{qty},
+                     'WAITING',
+                     'N'
+                 )
+    </insert>
+
+    <select id="findByOrderId" resultMap="packingInboundScanResultMap">
+        SELECT
+            pis.*,
+
+            CASE
+                WHEN pis.unit_type IN ('UNPLANNED_BOX', 'UNPLANNED_EACH') THEN up.product_type
+                ELSE pod.product_type
+                END AS product_type,
+
+            CASE
+                WHEN pis.unit_type IN ('UNPLANNED_BOX', 'UNPLANNED_EACH') THEN up.model_name
+                ELSE pod.model_name
+                END AS model_name,
+
+            CASE
+                WHEN pis.unit_type IN ('UNPLANNED_BOX', 'UNPLANNED_EACH') THEN up.color
+                ELSE pod.color
+                END AS color,
+
+            CASE
+                WHEN pis.unit_type IN ('UNPLANNED_BOX', 'UNPLANNED_EACH') THEN up.hardness
+                ELSE pod.hardness
+                END AS hardness
+
+        FROM packing_inbound_scan pis
+                 LEFT JOIN packing_order_detail pod
+                           ON pis.detail_id = pod.id
+                               AND pis.unit_type IN ('BOX', 'EACH')
+
+                 LEFT JOIN unplanned_purchase up
+                           ON pis.detail_id = up.id
+                               AND pis.unit_type IN ('UNPLANNED_BOX', 'UNPLANNED_EACH')
+
+        WHERE pis.packing_order_id = #{packingOrderId}
+        ORDER BY pis.detail_id ASC, pis.unit_type ASC, pis.unit_no ASC
+    </select>
+
+    <select id="findByDetailId" resultMap="packingInboundScanResultMap">
+        SELECT *
+        FROM packing_inbound_scan
+        WHERE detail_id = #{detailId}
+        ORDER BY unit_type ASC, unit_no ASC
+    </select>
+
+    <select id="findByQrInfo" resultMap="packingInboundScanResultMap">
+        SELECT *
+        FROM packing_inbound_scan
+        WHERE packing_order_id = #{packingOrderId}
+          AND detail_id = #{detailId}
+          AND unit_type = #{unitType}
+          AND unit_no = #{unitNo}
+            LIMIT 1
+    </select>
+
+    <select id="countByDetailId" resultType="int">
+        SELECT COUNT(*)
+        FROM packing_inbound_scan
+        WHERE detail_id = #{detailId}
+    </select>
+
+    <select id="countWaitingByOrderId" resultType="int">
+        SELECT COUNT(*)
+        FROM packing_inbound_scan
+        WHERE packing_order_id = #{packingOrderId}
+          AND scan_status = 'WAITING'
+    </select>
+
+    <select id="countDoneByOrderId" resultType="int">
+        SELECT COUNT(*)
+        FROM packing_inbound_scan
+        WHERE packing_order_id = #{packingOrderId}
+          AND scan_status = 'DONE'
+    </select>
+
+    <select id="sumDoneQtyNotAppliedByDetailId" resultType="int">
+        SELECT IFNULL(SUM(qty), 0)
+        FROM packing_inbound_scan
+        WHERE detail_id = #{detailId}
+          AND scan_status = 'DONE'
+          AND stock_applied = 'N'
+    </select>
+
+    <select id="findDoneNotAppliedByOrderId" resultMap="packingInboundScanResultMap">
+        SELECT *
+        FROM packing_inbound_scan
+        WHERE packing_order_id = #{packingOrderId}
+          AND scan_status = 'DONE'
+          AND stock_applied = 'N'
+        ORDER BY detail_id ASC, unit_type ASC, unit_no ASC
+    </select>
+
+    <update id="updateScanDone">
+        UPDATE packing_inbound_scan
+        SET scan_status = 'DONE',
+            scanned_at = NOW()
+        WHERE id = #{id}
+          AND scan_status = 'WAITING'
+    </update>
+
+    <update id="updateStockApplied">
+        UPDATE packing_inbound_scan
+        SET stock_applied = 'Y',
+            stock_applied_at = NOW()
+        WHERE id = #{id}
+          AND stock_applied = 'N'
+    </update>
+
+    <update id="cancelScan">
+        UPDATE packing_inbound_scan
+        SET scan_status = 'WAITING',
+            scanned_at = NULL
+        WHERE id = #{id}
+          AND stock_applied = 'N'
+    </update>
+
+    <select id="countByUnplannedId" resultType="int">
+        SELECT COUNT(*)
+        FROM packing_inbound_scan
+        WHERE detail_id = #{unplannedId}
+          AND unit_type IN ('UNPLANNED_BOX', 'UNPLANNED_EACH')
+    </select>
+
+    <select id="countWaitingByUnplannedId" resultType="int">
+        SELECT COUNT(*)
+        FROM packing_inbound_scan
+        WHERE detail_id = #{unplannedId}
+          AND unit_type IN ('UNPLANNED_BOX', 'UNPLANNED_EACH')
+          AND scan_status = 'WAITING'
+    </select>
+
+
+</mapper>

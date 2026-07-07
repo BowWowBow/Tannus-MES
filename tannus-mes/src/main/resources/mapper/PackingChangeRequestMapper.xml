@@ -1,0 +1,87 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="com.example.demo.api.mapper.PackingChangeRequestMapper">
+
+    <resultMap id="changeRequestResultMap"
+               type="com.example.demo.api.domain.PackingChangeRequest">
+        <id property="id" column="id"/>
+        <result property="packingOrderId" column="packing_order_id"/>
+        <result property="requestUser" column="request_user"/>
+        <result property="requestReason" column="request_reason"/>
+        <result property="requestContent" column="request_content"/>
+        <result property="status" column="status"/>
+        <result property="createdAt" column="created_at"/>
+        <result property="checkedAt" column="checked_at"/>
+    </resultMap>
+
+    <insert id="insertChangeRequest"
+            parameterType="com.example.demo.api.domain.PackingChangeRequest"
+            useGeneratedKeys="true"
+            keyProperty="id">
+        INSERT INTO packing_change_request (
+        packing_order_id,
+        request_user,
+        request_reason,
+        request_content,
+        status
+        ) VALUES (
+        #{packingOrderId},
+        #{requestUser},
+        #{requestReason},
+        #{requestContent},
+        #{status}
+        )
+    </insert>
+
+    <select id="findAll" resultMap="changeRequestResultMap">
+        SELECT
+        id,
+        packing_order_id,
+        request_user,
+        request_reason,
+        request_content,
+        status,
+        created_at,
+        checked_at
+        FROM packing_change_request
+        ORDER BY packing_order_id DESC, id DESC
+    </select>
+
+    <select id="findById" resultMap="changeRequestResultMap">
+        SELECT
+        id,
+        packing_order_id,
+        request_user,
+        request_reason,
+        request_content,
+        status,
+        created_at,
+        checked_at
+        FROM packing_change_request
+        WHERE id = #{id}
+    </select>
+
+    <select id="findPendingOrderIds" resultType="long">
+        SELECT DISTINCT packing_order_id
+        FROM packing_change_request
+        WHERE status IN ('WAITING', 'CHECKING')
+    </select>
+
+    <update id="updateStatus">
+        UPDATE packing_change_request
+        SET
+        status = #{status},
+        checked_at = NOW()
+        WHERE id = #{id}
+    </update>
+
+    <select id="countWaiting" resultType="int">
+        SELECT COUNT(*)
+        FROM packing_change_request
+        WHERE status = 'WAITING'
+    </select>
+
+</mapper>

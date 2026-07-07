@@ -1,0 +1,163 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="com.example.demo.api.mapper.PackingOutboundScanMapper">
+
+    <resultMap id="packingOutboundScanResultMap"
+               type="com.example.demo.api.domain.PackingOutboundScan">
+
+        <id property="id" column="id"/>
+
+        <result property="packingOrderId" column="packing_order_id"/>
+        <result property="detailId" column="detail_id"/>
+
+        <result property="scanType" column="scan_type"/>
+        <result property="scanSeq" column="scan_seq"/>
+
+        <result property="qty" column="qty"/>
+
+        <result property="status" column="status"/>
+
+        <result property="scannedAt" column="scanned_at"/>
+        <result property="createdAt" column="created_at"/>
+
+    </resultMap>
+
+    <!-- 생성 -->
+    <insert id="insert"
+            parameterType="com.example.demo.api.domain.PackingOutboundScan"
+            useGeneratedKeys="true"
+            keyProperty="id">
+
+        INSERT INTO packing_outbound_scan
+        (
+            packing_order_id,
+            detail_id,
+            scan_type,
+            scan_seq,
+            qty,
+            status
+        )
+        VALUES
+            (
+                #{packingOrderId},
+                #{detailId},
+                #{scanType},
+                #{scanSeq},
+                #{qty},
+                'WAITING'
+            )
+
+    </insert>
+
+    <!-- 지시번호 조회 -->
+    <select id="findByOrderId"
+            resultMap="packingOutboundScanResultMap">
+
+        SELECT *
+        FROM packing_outbound_scan
+        WHERE packing_order_id = #{packingOrderId}
+        ORDER BY detail_id,
+                 scan_type,
+                 scan_seq
+
+    </select>
+
+    <!-- 상세 조회 -->
+    <select id="findByDetailId"
+            resultMap="packingOutboundScanResultMap">
+
+        SELECT *
+        FROM packing_outbound_scan
+        WHERE detail_id = #{detailId}
+        ORDER BY scan_type,
+                 scan_seq
+
+    </select>
+
+    <!-- QR 조회 -->
+    <select id="findByQrInfo"
+            resultMap="packingOutboundScanResultMap">
+
+        SELECT *
+        FROM packing_outbound_scan
+        WHERE packing_order_id = #{packingOrderId}
+          AND detail_id = #{detailId}
+          AND scan_type = #{scanType}
+          AND scan_seq = #{scanSeq}
+            LIMIT 1
+
+    </select>
+
+    <!-- 상세별 개수 -->
+    <select id="countByDetailId"
+            resultType="int">
+
+        SELECT COUNT(*)
+        FROM packing_outbound_scan
+        WHERE detail_id = #{detailId}
+
+    </select>
+
+    <!-- 대기 -->
+    <select id="countWaitingByOrderId"
+            resultType="int">
+
+        SELECT COUNT(*)
+        FROM packing_outbound_scan
+        WHERE packing_order_id = #{packingOrderId}
+          AND status = 'WAITING'
+
+    </select>
+
+    <!-- 완료 -->
+    <select id="countDoneByOrderId"
+            resultType="int">
+
+        SELECT COUNT(*)
+        FROM packing_outbound_scan
+        WHERE packing_order_id = #{packingOrderId}
+          AND status = 'DONE'
+
+    </select>
+
+    <!-- 완료 처리 -->
+    <update id="updateScanDone">
+
+        UPDATE packing_outbound_scan
+        SET status = 'DONE',
+            scanned_at = NOW()
+        WHERE id = #{id}
+          AND status = 'WAITING'
+
+    </update>
+
+    <!-- 취소 -->
+    <update id="cancelScan">
+        UPDATE packing_outbound_scan
+        SET status = 'WAITING',
+            scanned_at = NULL
+        WHERE id = #{id}
+          AND status = 'DONE'
+    </update>
+
+    <!-- 지시 삭제 -->
+    <delete id="deleteByOrderId">
+
+        DELETE
+        FROM packing_outbound_scan
+        WHERE packing_order_id = #{packingOrderId}
+
+    </delete>
+
+    <select id="countWaitingByDetailId" resultType="int">
+        SELECT COUNT(*)
+        FROM packing_outbound_scan
+        WHERE detail_id = #{detailId}
+          AND status = 'WAITING'
+    </select>
+
+
+</mapper>

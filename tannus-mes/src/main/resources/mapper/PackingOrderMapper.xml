@@ -1,0 +1,427 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="com.example.demo.api.mapper.PackingOrderMapper">
+
+    <resultMap id="packingOrderResultMap" type="com.example.demo.api.domain.PackingOrder">
+        <id property="id" column="id"/>
+        <result property="requestDate" column="request_date"/>
+        <result property="requestedBy" column="requested_by"/>
+        <result property="targetTeam" column="target_team"/>
+        <result property="status" column="status"/>
+        <result property="remark" column="remark"/>
+        <result property="createdAt" column="created_at"/>
+    </resultMap>
+
+    <resultMap id="packingOrderDetailResultMap" type="com.example.demo.api.domain.PackingOrderDetail">
+        <id property="id" column="id"/>
+        <result property="packingOrderId" column="packing_order_id"/>
+        <result property="productType" column="product_type"/>
+        <result property="modelName" column="model_name"/>
+        <result property="color" column="color"/>
+        <result property="hardness" column="hardness"/>
+        <result property="baseQty" column="base_qty"/>
+        <result property="boxCount" column="box_count"/>
+        <result property="eachQty" column="each_qty"/>
+        <result property="totalQty" column="total_qty"/>
+        <result property="inboundStatus" column="inbound_status"/>
+        <result property="inboundAt" column="inbound_at"/>
+        <result property="packingScanStatus" column="packing_scan_status"/>
+        <result property="packingScanAt" column="packing_scan_at"/>
+    </resultMap>
+
+    <insert id="insertOrder"
+            parameterType="com.example.demo.api.domain.PackingOrder"
+            useGeneratedKeys="true"
+            keyProperty="id">
+        INSERT INTO packing_order (
+            request_date,
+            requested_by,
+            target_team,
+            status,
+            remark
+        ) VALUES (
+                     #{requestDate},
+                     #{requestedBy},
+                     #{targetTeam},
+                     #{status},
+                     #{remark}
+                 )
+    </insert>
+
+    <insert id="insertDetail"
+            parameterType="com.example.demo.api.domain.PackingOrderDetail"
+            useGeneratedKeys="true"
+            keyProperty="id">
+        INSERT INTO packing_order_detail (
+            packing_order_id,
+            product_type,
+            model_name,
+            color,
+            hardness,
+            base_qty,
+            box_count,
+            each_qty,
+            total_qty,
+            inbound_status,
+            packing_scan_status
+        ) VALUES (
+                     #{packingOrderId},
+                     #{productType},
+                     #{modelName},
+                     #{color},
+                     #{hardness},
+                     #{baseQty},
+                     #{boxCount},
+                     #{eachQty},
+                     #{totalQty},
+                     'WAITING',
+                     'WAITING'
+                 )
+    </insert>
+
+    <select id="findAllOrders" resultMap="packingOrderResultMap">
+        SELECT id, request_date, requested_by, target_team, status, remark, created_at
+        FROM packing_order
+        ORDER BY request_date DESC, id DESC
+    </select>
+
+    <select id="findOrdersByMonth" resultMap="packingOrderResultMap">
+        SELECT id, request_date, requested_by, target_team, status, remark, created_at
+        FROM packing_order
+        WHERE DATE_FORMAT(request_date, '%Y-%m') = #{month}
+        ORDER BY request_date DESC, id DESC
+    </select>
+
+    <select id="findOrderMonths" resultType="string">
+        SELECT DISTINCT DATE_FORMAT(request_date, '%Y-%m')
+        FROM packing_order
+        WHERE request_date IS NOT NULL
+        ORDER BY DATE_FORMAT(request_date, '%Y-%m') DESC
+    </select>
+
+    <select id="findOrderById" resultMap="packingOrderResultMap">
+        SELECT id, request_date, requested_by, target_team, status, remark, created_at
+        FROM packing_order
+        WHERE id = #{id}
+    </select>
+
+    <select id="findDetailsByOrderId" resultMap="packingOrderDetailResultMap">
+        SELECT
+            id,
+            packing_order_id,
+            product_type,
+            COALESCE(NULLIF(model_name, ''), product_type) AS model_name,
+            color,
+            hardness,
+            base_qty,
+            box_count,
+            each_qty,
+            total_qty,
+            inbound_status,
+            inbound_at,
+            packing_scan_status,
+            packing_scan_at
+        FROM packing_order_detail
+        WHERE packing_order_id = #{packingOrderId}
+        ORDER BY id ASC
+    </select>
+
+    <select id="findByStatus" resultMap="packingOrderResultMap">
+        SELECT id, request_date, requested_by, target_team, status, remark, created_at
+        FROM packing_order
+        WHERE status = #{status}
+        ORDER BY id DESC
+    </select>
+
+    <select id="findOrdersByStatus" resultMap="packingOrderResultMap">
+        SELECT id, request_date, requested_by, target_team, status, remark, created_at
+        FROM packing_order
+        WHERE status = #{status}
+        ORDER BY request_date ASC, id ASC
+    </select>
+
+    <select id="countAll" resultType="long">
+        SELECT COUNT(*)
+        FROM packing_order
+    </select>
+
+    <select id="countByStatus" resultType="long">
+        SELECT COUNT(*)
+        FROM packing_order
+        WHERE status = #{status}
+    </select>
+
+    <select id="countTodayAll" resultType="long">
+        SELECT COUNT(*)
+        FROM packing_order
+        WHERE request_date = CURDATE()
+    </select>
+
+    <!-- CANCELLED는 포장 처리율에서 처리완료로 포함 -->
+    <select id="countTodayDone" resultType="long">
+        SELECT COUNT(*)
+        FROM packing_order
+        WHERE request_date = CURDATE()
+          AND status IN ('READY_TO_SHIP', 'SHIPPED', 'RECEIVED', 'CANCELLED')
+    </select>
+
+    <select id="countMonthAll" resultType="long">
+        SELECT COUNT(*)
+        FROM packing_order
+        WHERE DATE_FORMAT(request_date, '%Y-%m') = DATE_FORMAT(CURDATE(), '%Y-%m')
+    </select>
+
+    <!-- CANCELLED는 포장 처리율에서 처리완료로 포함 -->
+    <select id="countMonthDone" resultType="long">
+        SELECT COUNT(*)
+        FROM packing_order
+        WHERE DATE_FORMAT(request_date, '%Y-%m') = DATE_FORMAT(CURDATE(), '%Y-%m')
+          AND status IN ('READY_TO_SHIP', 'SHIPPED', 'RECEIVED', 'CANCELLED')
+    </select>
+
+    <select id="countYearAll" resultType="long">
+        SELECT COUNT(*)
+        FROM packing_order
+        WHERE YEAR(request_date) = #{year}
+    </select>
+
+    <!-- 관리자 대시보드 올해 포장 처리율에서 CANCELLED도 처리완료로 포함 -->
+    <select id="countYearDone" resultType="long">
+        SELECT COUNT(*)
+        FROM packing_order
+        WHERE YEAR(request_date) = #{year}
+          AND status IN ('READY_TO_SHIP', 'SHIPPED', 'RECEIVED', 'CANCELLED')
+    </select>
+
+    <select id="countQuarterAll" resultType="long">
+        SELECT COUNT(*)
+        FROM packing_order
+        WHERE YEAR(request_date) = #{year}
+          AND QUARTER(request_date) = #{quarter}
+    </select>
+
+    <!-- CANCELLED는 포장 처리율에서 처리완료로 포함 -->
+    <select id="countQuarterDone" resultType="long">
+        SELECT COUNT(*)
+        FROM packing_order
+        WHERE YEAR(request_date) = #{year}
+          AND QUARTER(request_date) = #{quarter}
+          AND status IN ('READY_TO_SHIP', 'SHIPPED', 'RECEIVED', 'CANCELLED')
+    </select>
+
+    <select id="countStatsMonthAll" resultType="long">
+        SELECT COUNT(*)
+        FROM packing_order
+        WHERE YEAR(request_date) = #{year}
+          AND MONTH(request_date) = #{month}
+    </select>
+
+    <!-- 월별 통계에서도 CANCELLED를 처리완료로 포함 -->
+    <select id="countStatsMonthDone" resultType="long">
+        SELECT COUNT(*)
+        FROM packing_order
+        WHERE YEAR(request_date) = #{year}
+          AND MONTH(request_date) = #{month}
+          AND status IN ('READY_TO_SHIP', 'SHIPPED', 'RECEIVED', 'CANCELLED')
+    </select>
+
+    <select id="countWeekAll" resultType="long">
+        SELECT COUNT(*)
+        FROM packing_order
+        WHERE YEAR(request_date) = #{year}
+          AND WEEK(request_date, 1) = #{week}
+    </select>
+
+    <!-- 주별 통계에서도 CANCELLED를 처리완료로 포함 -->
+    <select id="countWeekDone" resultType="long">
+        SELECT COUNT(*)
+        FROM packing_order
+        WHERE YEAR(request_date) = #{year}
+          AND WEEK(request_date, 1) = #{week}
+          AND status IN ('READY_TO_SHIP', 'SHIPPED', 'RECEIVED', 'CANCELLED')
+    </select>
+
+    <update id="updateStatus">
+        UPDATE packing_order
+        SET status = #{status}
+        WHERE id = #{id}
+    </update>
+
+    <update id="updateCompletedAt">
+        UPDATE packing_order
+        SET completed_at = NOW()
+        WHERE id = #{id}
+    </update>
+
+    <update id="updateOrder"
+            parameterType="com.example.demo.api.domain.PackingOrder">
+        UPDATE packing_order
+        SET request_date = #{requestDate},
+            status = #{status},
+            remark = #{remark}
+        WHERE id = #{id}
+    </update>
+
+    <update id="updateDetailInboundStatus">
+        UPDATE packing_order_detail
+        SET inbound_status = #{status},
+            inbound_at = CASE
+                             WHEN #{status} = 'DONE' THEN NOW()
+                             ELSE inbound_at
+                END
+        WHERE id = #{detailId}
+          AND packing_order_id = #{orderId}
+    </update>
+
+    <select id="countDetailByInboundStatus" resultType="long">
+        SELECT COUNT(*)
+        FROM packing_order_detail
+        WHERE packing_order_id = #{orderId}
+          AND inbound_status = #{status}
+    </select>
+
+    <select id="countDetailsByOrderId" resultType="long">
+        SELECT COUNT(*)
+        FROM packing_order_detail
+        WHERE packing_order_id = #{orderId}
+    </select>
+
+    <delete id="deleteDetails">
+        DELETE FROM packing_order_detail
+        WHERE packing_order_id = #{packingOrderId}
+    </delete>
+
+    <select id="countDMinus2" resultType="long">
+        SELECT COUNT(*)
+        FROM packing_order
+        WHERE status = 'REQUESTED'
+          AND DATEDIFF(request_date, CURDATE()) = 2
+    </select>
+
+    <select id="countDMinus1" resultType="long">
+        SELECT COUNT(*)
+        FROM packing_order
+        WHERE status = 'REQUESTED'
+          AND DATEDIFF(request_date, CURDATE()) = 1
+    </select>
+
+    <select id="countDDay" resultType="long">
+        SELECT COUNT(*)
+        FROM packing_order
+        WHERE status = 'REQUESTED'
+          AND DATEDIFF(request_date, CURDATE()) = 0
+    </select>
+
+    <select id="countDPlus1" resultType="long">
+        SELECT COUNT(*)
+        FROM packing_order
+        WHERE status = 'REQUESTED'
+          AND DATEDIFF(request_date, CURDATE()) = -1
+    </select>
+
+    <select id="countDPlus2Over" resultType="long">
+        SELECT COUNT(*)
+        FROM packing_order
+        WHERE status = 'REQUESTED'
+          AND DATEDIFF(request_date, CURDATE()) &lt;= -2
+    </select>
+
+    <select id="findInboundStatus" resultType="string">
+        SELECT inbound_status
+        FROM packing_order_detail
+        WHERE id = #{detailId}
+    </select>
+
+    <update id="updateInboundDone">
+        UPDATE packing_order_detail
+        SET inbound_status = 'DONE',
+            inbound_at = NOW()
+        WHERE id = #{detailId}
+    </update>
+
+    <update id="cancelInbound">
+        UPDATE packing_order_detail
+        SET inbound_status = 'WAITING',
+            inbound_at = NULL
+        WHERE id = #{detailId}
+    </update>
+
+    <update id="updatePackingScanDone">
+        UPDATE packing_order_detail
+        SET packing_scan_status = 'DONE',
+            packing_scan_at = NOW()
+        WHERE id = #{detailId}
+    </update>
+
+    <select id="findPackingScanStatus" resultType="string">
+        SELECT packing_scan_status
+        FROM packing_order_detail
+        WHERE id = #{detailId}
+    </select>
+
+    <select id="countPackingScanDone" resultType="long">
+        SELECT COUNT(*)
+        FROM packing_order_detail
+        WHERE packing_order_id = #{orderId}
+          AND packing_scan_status = 'DONE'
+    </select>
+
+    <select id="findDoneDetailsByOrderId" resultMap="packingOrderDetailResultMap">
+        SELECT
+            id,
+            packing_order_id,
+            product_type,
+            model_name,
+            color,
+            hardness,
+            base_qty,
+            box_count,
+            each_qty,
+            total_qty,
+            inbound_status,
+            inbound_at,
+            packing_scan_status,
+            packing_scan_at
+        FROM packing_order_detail
+        WHERE packing_order_id = #{packingOrderId}
+          AND inbound_status = 'DONE'
+        ORDER BY id ASC
+    </select>
+
+    <select id="findPackingDoneDetailsByOrderId" resultMap="packingOrderDetailResultMap">
+        SELECT
+            id,
+            packing_order_id,
+            product_type,
+            model_name,
+            color,
+            hardness,
+            base_qty,
+            box_count,
+            each_qty,
+            total_qty,
+            inbound_status,
+            inbound_at,
+            packing_scan_status,
+            packing_scan_at
+        FROM packing_order_detail
+        WHERE packing_order_id = #{packingOrderId}
+          AND packing_scan_status = 'DONE'
+        ORDER BY id ASC
+    </select>
+
+    <select id="findAll" resultMap="packingOrderResultMap">
+        SELECT
+            id,
+            request_date,
+            requested_by,
+            status,
+            created_at
+        FROM packing_order
+        ORDER BY id DESC
+    </select>
+
+</mapper>

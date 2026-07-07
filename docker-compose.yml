@@ -1,0 +1,33 @@
+name: tannus
+
+services:
+  mysql:
+    image: mysql:8.0
+    container_name: tannus-mysql
+    restart: always
+    environment:
+      MYSQL_ROOT_PASSWORD: 1234
+      MYSQL_DATABASE: tanus
+      TZ: Asia/Seoul
+    ports:
+      - "3309:3306"
+    volumes:
+      - tannus_mysql_data:/var/lib/mysql
+      - ./tannus-mes.sql:/docker-entrypoint-initdb.d/init.sql
+
+  tannus-mes:
+    build:
+      context: ./tannus-mes
+    container_name: tannus-mes
+    restart: always
+    ports:
+      - "8080:8080"
+    depends_on:
+      - mysql
+    environment:
+      DB_URL: jdbc:mysql://mysql:3306/tanus?serverTimezone=Asia/Seoul&characterEncoding=UTF-8
+      DB_USERNAME: root
+      DB_PASSWORD: 1234
+
+volumes:
+  tannus_mysql_data:
