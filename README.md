@@ -1,6 +1,6 @@
 # Tannus MES
 
-![Tannus MES 대표 이미지](docs/images/tannus-mes-cover.png)
+![Tannus MES 대표 이미지](tannus-mes/docs/images/tannus-mes-cover.png)
 
 ## 프로젝트 소개
 
