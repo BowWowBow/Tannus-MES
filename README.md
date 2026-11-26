@@ -27,4 +27,4 @@ Tannus MES는 생산, 물류, 포장, 출고, 입고 과정을 통합 관리하�
 
 ## 배포 주소
 
-	mes.jkyungsoo.com
+https://mes.jkyungsoo.com
